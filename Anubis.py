@@ -13,6 +13,8 @@ from PyQt5 import QtGui
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from pathlib import Path
+from io import StringIO
+
 
 def serial_ports():
     """ Lists serial port names
@@ -69,7 +71,7 @@ class Signal(QObject):
 # Making text editor as A global variable (to solve the issue of being local to (self) in widget class)
 text = QTextEdit
 text2 = QTextEdit
-
+parameters =QLineEdit
 #
 #
 #
@@ -176,7 +178,15 @@ class Widget(QWidget):
         V_splitter = QSplitter(Qt.Vertical)
         V_splitter.addWidget(H_splitter)
         V_splitter.addWidget(text2)
-
+        
+        param_Label = QLabel(self)
+        param_Label.setText("Use this text area to write the function parameters,parameters separated by a comma ','")
+        V_splitter.addWidget(param_Label)
+        global param_Line
+        param_Line = QLineEdit(self)
+        V_splitter.addWidget(param_Line)
+        
+        
         Final_Layout = QHBoxLayout(self)
         Final_Layout.addWidget(V_splitter)
 
@@ -310,20 +320,45 @@ class UI(QMainWindow):
 
         self.setCentralWidget(widget)
         self.show()
+            
 
     ###########################        Start OF the Functions          ##################
+	  ###########################        modified Function          ##################
     def Run(self):
-        if self.port_flag == 0:
-            mytext = text.toPlainText()
-        #
-        ##### Compiler Part
-        #
-#            ide.create_file(mytext)
-#            ide.upload_file(self.portNo)
-            text2.append("Sorry, there is no attached compiler.")
+        text2.clear()
+        mytext=text.toPlainText()
+        function_name=mytext[4:mytext.index("(")]
+        parameters = param_Line.text().split(",")
+        function_call=function_name +"("
+            
+        for param in parameters:
+            function_call +=param +','
+        function_call=function_call[:-1]+")"
+        
+        print(function_call)
+        try:
+            original_stdout=sys.stdout
+            output= StringIO() 
+            sys.stdout = output 
+            
+            if mytext[:3]=='def':
+                try:
+                    exec(mytext + '\n'+ function_call)
+                    
+                except:
+                    text2.append("something went wrong 1")
+            else:  
+                try:
+                    exec(mytext)    
+                except:
+                    text2.append("something went wrong 2" )
+                
+        
+            text2.append(output.getvalue())     
+            sys.stdout=original_stdout
 
-        else:
-            text2.append("Please Select Your Port Number First")
+        except:   
+            text2.append("something went wrong 3")
 
 
     # this function is made to get which port was selected by the user
